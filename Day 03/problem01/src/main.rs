@@ -19,7 +19,8 @@ impl FromStr for CellType {
     }
 }
 
-type Grid = Array2<CellType>;
+#[derive(Debug)]
+struct Grid(Array2<CellType>);
 
 #[derive(Debug)]
 struct Board {
@@ -33,7 +34,7 @@ impl Board {
 }
 
 impl FromStr for Board {
-    type Err = ();
+    type Err = std::string::ParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match Grid::from_str(input) {
@@ -47,24 +48,38 @@ impl FromStr for Grid {
     type Err = std::string::ParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let assert_lines_2dimensional = |lines: &Vec<str>| {
-            assert!(lines.count() > 1, "need more than one line on grid");
-            assert!(lines.get(0).len() > 1, "need more than one column on grid");
+        let assert_lines_2dimensional = |lines: &Vec<&str>| {
+            assert!(lines.len() > 1, "need more than one line on grid");
+            assert!(lines[0].len() > 1, "need more than one column on grid");
         };
 
-        let get_ncols = |lines: &Vec<str>| -> usize {
-            lines.get(0).len()
+        let get_ncols = |lines: Vec<&str>| -> usize {
+            lines[0].len()
         };
 
-        let assert_all_lines_share_dimensions = |lines: &mut Vec<str>| {
-            let ncols = lines.get(0).len();
-            assert!(lines.all(|line: &str| line.len() == ncols), "needs stable number of columns");
+        let assert_all_lines_share_dimensions = |lines: &Vec<&str>| {
+            let ncols = lines[0].len();
+            assert!(
+                lines.iter().all(|line| line.len() == ncols),
+                "needs stable number of columns"
+            );
         };
 
-        let mut lines : Vec<str> = input.lines().unwrap(); // needs to be mutable for size checks
+        let mut lines : Vec<&str> = input.lines().collect(); // needs to be mutable for size checks
         assert_lines_2dimensional(&lines);
-        assert_all_lines_share_dimensions(&mut lines);
-        let ncols = get_ncols(&lines);
+        assert_all_lines_share_dimensions(&lines);
+        let ncols = get_ncols(lines);
+
+        unimplemented!()
+    }
+}
+
+impl From<&str> for Grid {
+    fn from(input: &str) -> Self {
+        match Grid::from_str(input) {
+            Ok(T) => T,
+            Err(E) => panic!(E)
+        }
     }
 }
 
