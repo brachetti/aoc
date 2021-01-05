@@ -1,9 +1,12 @@
-use std::str::{FromStr};
-use ndarray::Array2;
+use crate::CellType::Square;
+use ndarray::{Array, Array2, Axis};
+use std::ops::Deref;
+use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 enum CellType {
-    Tree, Square
+    Tree,
+    Square,
 }
 
 impl FromStr for CellType {
@@ -14,13 +17,27 @@ impl FromStr for CellType {
         match cell {
             "." => Ok(Self::Square),
             "#" => Ok(Self::Tree),
-            _ => panic!("unrecognized cell value {}", cell),
+            _ => panic!("unrecognized cell value {}!", cell),
         }
     }
 }
 
-#[derive(Debug)]
+impl Default for CellType {
+    fn default() -> Self {
+        Square
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
 struct Grid(Array2<CellType>);
+
+impl Deref for Grid {
+    type Target = Array2<CellType>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Debug)]
 struct Board {
@@ -38,8 +55,8 @@ impl FromStr for Board {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match Grid::from_str(input) {
-            Ok(T) => Ok(Board::new(T)),
-            Err(E) => Err(E)
+            Ok(result) => Ok(Board::new(result)),
+            Err(error) => Err(error),
         }
     }
 }
@@ -53,9 +70,7 @@ impl FromStr for Grid {
             assert!(lines[0].len() > 1, "need more than one column on grid");
         };
 
-        let get_ncols = |lines: Vec<&str>| -> usize {
-            lines[0].len()
-        };
+        let get_ncols = |lines: &Vec<&str>| -> usize { lines[0].len() };
 
         let assert_all_lines_share_dimensions = |lines: &Vec<&str>| {
             let ncols = lines[0].len();
@@ -65,20 +80,34 @@ impl FromStr for Grid {
             );
         };
 
-        let mut lines : Vec<&str> = input.lines().collect(); // needs to be mutable for size checks
+        let lines: Vec<&str> = input.lines().collect(); // needs to be mutable for size checks
         assert_lines_2dimensional(&lines);
         assert_all_lines_share_dimensions(&lines);
-        let ncols = get_ncols(lines);
+        let ncols = get_ncols(&lines);
 
-        unimplemented!()
+        let mut grid = Array2::<CellType>::default((lines.len(), ncols));
+
+        for (index, mut row) in grid.axis_iter_mut(Axis(ncols - 1)).enumerate() {
+            let cells: Vec<CellType> = lines
+                .get(index)
+                .unwrap()
+                .split_terminator("")
+                .skip(1)
+                .map(|f| CellType::from_str(f).unwrap())
+                .collect::<Vec<CellType>>();
+            // row = .view_mut();
+            row.assign(&Array::from(cells));
+        }
+
+        Ok(Grid(grid))
     }
 }
 
 impl From<&str> for Grid {
     fn from(input: &str) -> Self {
         match Grid::from_str(input) {
-            Ok(T) => T,
-            Err(E) => panic!(E)
+            Ok(result) => result,
+            Err(error) => panic!(error),
         }
     }
 }
@@ -89,8 +118,9 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use crate::CellType::{Square, Tree};
     use crate::{CellType, Grid};
-    use crate::CellType::{Tree, Square};
+    use ndarray::{array};
     use std::str::FromStr;
     use test_case::test_case;
 
@@ -112,6 +142,24 @@ mod tests {
     fn should_init_grid() {
         let input = given_input("..\n..");
         let result = when_initializing_grid(input);
+
+        assert_eq!(result.0, array![[Square, Square], [Square, Square]]);
+    }
+
+    #[test]
+    fn should_init_grid_with_only_trees() {
+        let input = given_input("##\n##");
+        let result = when_initializing_grid(input);
+
+        assert_eq!(result.0, array![[Tree, Tree], [Tree, Tree]]);
+    }
+
+    #[test]
+    fn should_init_grid_with_chess_pattern() {
+        let input = given_input("#.\n.#");
+        let result = when_initializing_grid(input);
+
+        assert_eq!(result.0, array![[Tree, Square], [Square, Tree]]);
     }
 
     fn when_initializing_grid(input: &str) -> Grid {
@@ -128,25 +176,25 @@ mod tests {
     // be tested separately. So, sadly, this was left as a warning.
     #[test_case("3" => panics "unrecognized cell value 3")]
     #[test_case("a" => panics "unrecognized cell value a")]
-    fn should_recognize_no_other_cell_types(input : &str) {
+    fn should_recognize_no_other_cell_types(input: &str) {
         CellType::from_str(input).unwrap();
     }
 
-//
-//     const AOC_EXAMPLE: String = String::from("\
-// ..##.......
-// #...#...#..
-// .#....#..#.
-// ..#.#...#.#
-// .#...##..#.
-// ..#.##.....
-// .#.#.#....#
-// .#........#
-// #.##...#...
-// #...##....#
-// .#..#...#.#");
-//
-//     fn given_input() -> String {
-//         AOC_EXAMPLE
-//     }
+    //
+    //     const AOC_EXAMPLE: String = String::from("\
+    // ..##.......
+    // #...#...#..
+    // .#....#..#.
+    // ..#.#...#.#
+    // .#...##..#.
+    // ..#.##.....
+    // .#.#.#....#
+    // .#........#
+    // #.##...#...
+    // #...##....#
+    // .#..#...#.#");
+    //
+    //     fn given_input() -> String {
+    //         AOC_EXAMPLE
+    //     }
 }
