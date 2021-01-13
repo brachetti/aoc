@@ -17,7 +17,7 @@ impl FromStr for CellType {
         match cell {
             "." => Ok(Self::Square),
             "#" => Ok(Self::Tree),
-            _ => panic!("unrecognized cell value {}!", cell),
+            _ => panic!("unrecognized cell value {:?}!", cell),
         }
     }
 }
@@ -170,12 +170,12 @@ mod tests {
         input
     }
 
-    #[test_case("-" => panics "unrecognized cell value -")]
+    #[test_case("-" => panics "unrecognized cell value \"-\"")]
     // #[test_case("/" => panics "unrecognized cell value /")] # Note: Due to code generation,
     // this would lead to a duplicated test name, all special signs leading to an exception need to
     // be tested separately. So, sadly, this was left as a warning.
-    #[test_case("3" => panics "unrecognized cell value 3")]
-    #[test_case("a" => panics "unrecognized cell value a")]
+    #[test_case("3" => panics "unrecognized cell value \"3\"")]
+    #[test_case("a" => panics "unrecognized cell value \"a\"")]
     fn should_recognize_no_other_cell_types(input: &str) {
         CellType::from_str(input).unwrap();
     }
