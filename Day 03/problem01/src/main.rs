@@ -1,5 +1,4 @@
-use crate::CellType::Square;
-use ndarray::{Array, Array2, Axis};
+use ndarray::{Array, Array2};
 use std::ops::Deref;
 use std::str::FromStr;
 
@@ -24,7 +23,7 @@ impl FromStr for CellType {
 
 impl Default for CellType {
     fn default() -> Self {
-        Square
+        CellType::Square
     }
 }
 
@@ -39,14 +38,17 @@ impl Deref for Grid {
     }
 }
 
+impl Grid {}
+
 #[derive(Debug)]
 struct Board {
     contents: Grid,
+    move_pattern: MovePattern,
 }
 
 impl Board {
-    pub fn new(contents: Grid) -> Self {
-        Board { contents }
+    pub fn new(contents: Grid, move_pattern: MovePattern) -> Self {
+        Board { contents, move_pattern }
     }
 }
 
@@ -55,7 +57,7 @@ impl FromStr for Board {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match Grid::from_str(input) {
-            Ok(result) => Ok(Board::new(result)),
+            Ok(result) => Ok(Board::new(result, MovePattern::default())),
             Err(error) => Err(error),
         }
     }
@@ -76,18 +78,23 @@ impl FromStr for Grid {
             let ncols = lines[0].len();
             assert!(
                 lines.iter().all(|line| line.len() == ncols),
-                "needs stable number of columns"
+                "needs stable number of columns ({})",
+                ncols
             );
         };
 
-        let lines: Vec<&str> = input.lines().collect(); // needs to be mutable for size checks
+        let lines: Vec<&str> = input
+            .lines()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect(); // needs to be mutable for size checks
         assert_lines_2dimensional(&lines);
         assert_all_lines_share_dimensions(&lines);
         let ncols = get_ncols(&lines);
 
         let mut grid = Array2::<CellType>::default((lines.len(), ncols));
 
-        for (index, mut row) in grid.axis_iter_mut(Axis(ncols - 1)).enumerate() {
+        for (index, mut row) in grid.outer_iter_mut().enumerate() {
             let cells: Vec<CellType> = lines
                 .get(index)
                 .unwrap()
@@ -112,6 +119,18 @@ impl From<&str> for Grid {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct MovePattern {
+    rows: usize,
+    cols: usize,
+}
+
+impl Default for MovePattern {
+    fn default() -> Self {
+        MovePattern { rows: 1, cols: 1 }
+    }
+}
+
 fn main() {
     println!("Hello, world!");
 }
@@ -119,8 +138,9 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use crate::CellType::{Square, Tree};
-    use crate::{CellType, Grid};
-    use ndarray::{array};
+    use crate::{CellType, Grid, MovePattern, Board};
+    use ndarray::{array, ArrayBase, OwnedRepr, Ix1};
+    use once_cell::sync::OnceCell;
     use std::str::FromStr;
     use test_case::test_case;
 
@@ -180,21 +200,58 @@ mod tests {
         CellType::from_str(input).unwrap();
     }
 
-    //
-    //     const AOC_EXAMPLE: String = String::from("\
-    // ..##.......
-    // #...#...#..
-    // .#....#..#.
-    // ..#.#...#.#
-    // .#...##..#.
-    // ..#.##.....
-    // .#.#.#....#
-    // .#........#
-    // #.##...#...
-    // #...##....#
-    // .#..#...#.#");
-    //
-    //     fn given_input() -> String {
-    //         AOC_EXAMPLE
-    //     }
+    #[test]
+    fn should_handle_aoc_grid_without_error() {
+        let input = given_aoc_input();
+        let grid = when_initializing_grid(input);
+
+        then_first_line_is(grid, array![
+            Square, Square, Tree, Tree, Square, Square, Square, Square, Square, Square, Square
+        ])
+    }
+
+    #[test]
+    fn should_compute_board_with_move_pattern() {
+        let grid = given_aoc_grid();
+        let board = when_initializing_board(grid, AOC_MOVE_PATTERN);
+        ()
+    }
+
+    fn when_initializing_board(grid: Grid, mp: MovePattern) {
+        let board = Board::new(grid, mp);
+    }
+
+    fn given_aoc_grid() -> Grid {
+        let input = given_aoc_input();
+        when_initializing_grid(input)
+    }
+
+    fn then_first_line_is(grid : Grid, expected: ArrayBase<OwnedRepr<CellType>, Ix1>) {
+        assert_eq!(
+            grid.row(0),
+            expected,
+            "First line does not match"
+        )
+    }
+
+    fn given_aoc_input() -> &'static String {
+        static AOC_EXAMPLE: OnceCell<String> = OnceCell::new();
+        AOC_EXAMPLE.get_or_init(|| {
+            String::from(
+                "..##.......\n
+                    #...#...#..\n
+                    .#....#..#.\n
+                    ..#.#...#.#\n
+                    .#...##..#.\n
+                    ..#.##.....\n
+                    .#.#.#....#\n
+                    .#........#\n
+                    #.##...#...\n
+                    #...##....#\n
+                    .#..#...#.#",
+            )
+        })
+    }
+
+    const AOC_MOVE_PATTERN : MovePattern = MovePattern { rows: 1, cols: 3 };
 }
