@@ -1,4 +1,4 @@
-use ndarray::{Array, Array2, Array1, array};
+use ndarray::{Array, Array2, array, ArrayBase, OwnedRepr, Dim};
 use std::ops::Deref;
 use std::str::FromStr;
 use crate::CellType::{Tree, Square};
@@ -49,16 +49,19 @@ impl Grid {
 #[derive(Debug)]
 struct Board {
     contents: Grid,
-    move_pattern: Array1<usize>,
-    current_position: Array1<usize>,
+    move_pattern: ArrayBase<OwnedRepr<usize>, Dim<[usize; 1]>>,
+    current_position: ArrayBase<OwnedRepr<usize>, Dim<[usize; 1]>>,
 }
 
+
 impl Board {
+    const START_POSITION: (usize, usize) = (0, 0);
     pub fn new(contents: Grid, mp: MovePattern) -> Self {
+
         Board {
             contents,
             move_pattern: array![mp.rows, mp.cols],
-            current_position: array![0, 0]
+            current_position: array![Self::START_POSITION.0, Self::START_POSITION.1],
         }
     }
 
@@ -69,7 +72,7 @@ impl Board {
     pub(crate) fn calculate_collisions(&mut self) -> usize {
         let mut collisions = 0;
 
-        while self.current_row() != self.grid_rows() {
+        while self.current_row() <= self.grid_rows() {
             self.move_position();
             if self.hit_a_tree() {
                 collisions += 1;
@@ -77,6 +80,11 @@ impl Board {
         }
 
         collisions
+    }
+
+    pub fn reset_with_new_pattern(&mut self, mp: MovePattern) {
+        self.set_move_pattern(mp);
+        self.current_position = array![Self::START_POSITION.0, Self::START_POSITION.1];
     }
 
     fn hit_a_tree(&self) -> bool {
@@ -205,9 +213,23 @@ fn main() {
     let content = std::fs::read_to_string(input_file).expect("Could not open file");
 
     let mut board = Board::from_str(content.as_str()).expect("Could not init Board");
-    board.set_move_pattern(MovePattern { rows: 1, cols: 3 });
+    let patterns = [
+        MovePattern { rows: 1, cols: 1 },
+        MovePattern { rows: 1, cols: 3 },
+        MovePattern { rows: 1, cols: 5 },
+        MovePattern { rows: 1, cols: 7 },
+        MovePattern { rows: 2, cols: 1 },
+    ];
+    let mut mult_result = 1;
+    println!("Trying the following patterns:");
+    for pattern in patterns.iter() {
+        board.reset_with_new_pattern(*pattern);
+        let collisions = board.calculate_collisions();
+        println!("- {:?} with # collisions = {}", pattern, collisions);
+        mult_result *= collisions;
+    }
 
-    println!("Amount of collisions on the way {}", board.calculate_collisions());
+    println!("\nResult of multiplication of total collisions on the way {}", mult_result);
 }
 
 #[cfg(test)]
