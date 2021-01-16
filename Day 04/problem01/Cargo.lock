@@ -43,6 +43,7 @@ dependencies = [
  "once_cell",
  "recap",
  "regex",
+ "serde",
 ]
 
 [[package]]
