@@ -1,6 +1,7 @@
-use ndarray::{Array, Array2};
+use ndarray::{Array, Array2, Array1, array};
 use std::ops::Deref;
 use std::str::FromStr;
+use crate::CellType::{Tree, Square};
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum CellType {
@@ -38,17 +39,69 @@ impl Deref for Grid {
     }
 }
 
-impl Grid {}
+impl Grid {
+    pub(crate) fn cell_at(&self, row: usize, col: usize) -> Option<&CellType> {
+        self.get((row, col))
+    }
+}
 
 #[derive(Debug)]
 struct Board {
     contents: Grid,
-    move_pattern: MovePattern,
+    move_pattern: Array1<usize>,
+    current_position: Array1<usize>,
 }
 
 impl Board {
-    pub fn new(contents: Grid, move_pattern: MovePattern) -> Self {
-        Board { contents, move_pattern }
+    pub fn new(contents: Grid, mp: MovePattern) -> Self {
+        Board {
+            contents,
+            move_pattern: array![mp.rows, mp.cols],
+            current_position: array![0, 0]
+        }
+    }
+
+    pub(crate) fn calculate_collisions(&mut self) -> usize {
+        let mut collisions = 0;
+
+        while self.current_row() != self.grid_rows() {
+            self.move_position();
+            if self.hit_a_tree() {
+                collisions += 1;
+            }
+        }
+
+        collisions
+    }
+
+    fn hit_a_tree(&self) -> bool {
+        let row = self.current_row() % self.grid_rows();
+        let col = self.current_col() % self.grid_cols();
+        match self.contents.cell_at(row, col) {
+            None => panic!("Position does not exist m("),
+            Some(cell) if *cell == Tree => true,
+            Some(_) => false,
+        }
+    }
+
+    fn move_position(&mut self) {
+        self.current_position += &self.move_pattern;
+    }
+
+    fn current_row(&self) -> usize {
+        *self.current_position.get(0).unwrap()
+    }
+
+    fn current_col(&self) -> usize {
+        *self.current_position.get(1).unwrap()
+    }
+
+    fn grid_rows(&self) -> usize {
+        self.contents.nrows()
+    }
+
+    fn grid_cols(&self) -> usize {
+        self.contents.ncols()
     }
 }
 
@@ -211,14 +264,37 @@ mod tests {
     }
 
     #[test]
-    fn should_compute_board_with_move_pattern() {
+    fn should_build_board_with_move_pattern() {
         let grid = given_aoc_grid();
-        let board = when_initializing_board(grid, AOC_MOVE_PATTERN);
-        ()
+        when_initializing_board(grid, AOC_MOVE_PATTERN);
+        () // all is well
     }
 
-    fn when_initializing_board(grid: Grid, mp: MovePattern) {
-        let board = Board::new(grid, mp);
+    #[test]
+    fn should_calculating_aoc_move_pattern() {
+        let board = when_initializing_board(given_aoc_grid(), AOC_MOVE_PATTERN);
+        let trees_hit = when_calculating_collisions(board);
+
+        assert_eq!(trees_hit, 7)
+    }
+
+    #[test]
+    fn should_add_to_position() {
+        let mut left = array![0,0];
+        let right = array![1, 3];
+
+        left += &right;
+        left += &right;
+
+        assert_eq!(left, array![2, 6])
+    }
+
+    fn when_calculating_collisions(mut board: Board) -> usize {
+        board.calculate_collisions()
+    }
+
+    fn when_initializing_board(grid: Grid, mp: MovePattern) -> Board {
+       Board::new(grid, mp)
     }
 
     fn given_aoc_grid() -> Grid {
