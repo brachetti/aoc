@@ -1,7 +1,7 @@
-#[derive(Debug, PartialEq)]
-pub struct Scanner {
+use crate::lib::prelude::*;
 
-}
+#[derive(Debug, PartialEq)]
+pub struct Scanner {}
 
 #[cfg(test)]
 mod tests {
