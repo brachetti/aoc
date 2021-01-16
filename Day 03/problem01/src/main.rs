@@ -2,6 +2,7 @@ use ndarray::{Array, Array2, Array1, array};
 use std::ops::Deref;
 use std::str::FromStr;
 use crate::CellType::{Tree, Square};
+use clap::{App, Arg};
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum CellType {
@@ -59,6 +60,10 @@ impl Board {
             move_pattern: array![mp.rows, mp.cols],
             current_position: array![0, 0]
         }
+    }
+
+    pub fn set_move_pattern(&mut self, mp: MovePattern) {
+        self.move_pattern = array![mp.rows, mp.cols]
     }
 
     pub(crate) fn calculate_collisions(&mut self) -> usize {
@@ -185,7 +190,24 @@ impl Default for MovePattern {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let matches = App::new("AOC Day 3")
+        .about("Calculates collisions in a forest")
+        .arg(
+            Arg::new("file")
+                .short('f')
+                .long("file")
+                .takes_value(true)
+                .required(true)
+                .about("the input file"))
+        .get_matches();
+
+    let input_file = matches.value_of("file").unwrap();
+    let content = std::fs::read_to_string(input_file).expect("Could not open file");
+
+    let mut board = Board::from_str(content.as_str()).expect("Could not init Board");
+    board.set_move_pattern(MovePattern { rows: 1, cols: 3 });
+
+    println!("Amount of collisions on the way {}", board.calculate_collisions());
 }
 
 #[cfg(test)]
