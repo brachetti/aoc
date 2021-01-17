@@ -1,15 +1,18 @@
+extern crate derive_builder;
+
 pub mod prelude {
     pub use super::scanner::*;
-    pub use std::{
-        str::FromStr,
-        fmt::{self, Display, Formatter},
-        error::Error,
-        string::ParseError,
-    };
-    pub use serde::Deserialize;
-    pub use regex::Regex;
+    pub use derive_builder::*;
     pub use once_cell::sync::OnceCell;
     pub use recap::Recap;
+    pub use regex::Regex;
+    pub use serde::Deserialize;
+    pub use std::{
+        error::Error,
+        fmt::{self, Display, Formatter},
+        str::FromStr,
+        string::ParseError,
+    };
 }
 
 mod batch_file;

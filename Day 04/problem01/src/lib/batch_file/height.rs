@@ -1,14 +1,14 @@
 use crate::lib::prelude::*;
 use regex::Captures;
 
-#[derive(PartialEq, Debug, Deserialize, Recap)]
+#[derive(PartialEq, Debug, Deserialize, Recap, Copy, Clone)]
 #[recap(regex = r#"(?P<amount>\d{2,3})(?P<measurement>.{2})"#)]
 pub struct Height {
     amount: usize,
     measurement: Measurement,
 }
 
-#[derive(PartialEq, Debug, Deserialize)]
+#[derive(PartialEq, Debug, Deserialize, Copy, Clone)]
 pub enum Measurement {
     r#in,
     cm,
@@ -16,14 +16,20 @@ pub enum Measurement {
 
 #[cfg(test)]
 mod tests {
-    use crate::lib::batch_file::height::{Measurement, Height};
+    use crate::lib::batch_file::height::{Height, Measurement};
 
     #[test]
     fn should_parse_centimetres() {
         let given = "182cm";
         let result: Height = given.parse::<Height>().unwrap();
 
-        assert_eq!(result, Height { amount: 182, measurement: Measurement::cm })
+        assert_eq!(
+            result,
+            Height {
+                amount: 182,
+                measurement: Measurement::cm
+            }
+        )
     }
 
     #[test]
