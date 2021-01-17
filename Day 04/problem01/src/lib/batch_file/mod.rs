@@ -7,6 +7,7 @@ use super::derive_builder::export::core::num::ParseIntError;
 use height::*;
 use regex::{Captures, Match};
 use rgb::*;
+use serde::Deserializer;
 
 #[derive(Debug, Deserialize)]
 pub struct BatchFile {
@@ -72,6 +73,24 @@ impl FromStr for PassportData {
                 Some(name) if name.as_str() == "iyr" => {
                     passport_data_builder.iyr(PassportData::usize_value(cap));
                 }
+                Some(name) if name.as_str() == "eyr" => {
+                    passport_data_builder.eyr(PassportData::usize_value(cap));
+                }
+                Some(name) if name.as_str() == "pid" => {
+                    passport_data_builder.pid(PassportData::usize_value(cap));
+                }
+                Some(name) if name.as_str() == "cid" => {
+                    passport_data_builder.cid(PassportData::usize_value(cap));
+                }
+                Some(name) if name.as_str() == "ecl" => {
+                    passport_data_builder.ecl(PassportData::ecl_value(cap));
+                }
+                Some(name) if name.as_str() == "hcl" => {
+                    passport_data_builder.hcl(PassportData::hcl_value(cap));
+                }
+                Some(name) if name.as_str() == "hgt" => {
+                    passport_data_builder.hgt(PassportData::hgt_value(cap));
+                }
                 None => {}
                 _ => {}
             }
@@ -86,23 +105,72 @@ impl PassportData {
     fn usize_value(cap: Captures) -> Option<usize> {
         match cap.name("value") {
             Some(value) => {
-                let val = value.as_str();
-                match usize::from_str(val) {
-                    Ok(T) => Some(T),
-                    _ => None
+                match usize::from_str(value.as_str()) {
+                    Ok(val) => Some(val),
+                    _ => None,
                 }
             },
             None => None,
         }
+    }
 
+    fn ecl_value(cap: Captures) -> Option<EyeColor> {
+        match cap.name("value") {
+            Some(value) => {
+                match value.as_str().parse::<EyeColor>() {
+                    Ok(val) => Some(val),
+                    _ => None,
+                }
+            },
+            None => None,
+        }
+    }
+
+    fn hcl_value(cap: Captures) -> Option<RGB> {
+        match cap.name("value") {
+            Some(value) => {
+                match value.as_str().parse::<RGB>() {
+                    Ok(val) => Some(val),
+                    _ => None,
+                }
+            },
+            None => None,
+        }
+    }
+
+    fn hgt_value(cap: Captures) -> Option<Height> {
+        match cap.name("value") {
+            Some(value) => {
+                match value.as_str().parse::<Height>() {
+                    Ok(val) => Some(val),
+                    _ => None,
+                }
+            },
+            None => None,
+        }
     }
 }
 
-#[derive(Deserialize, Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Deserialize)]
 pub enum EyeColor {
     gry,
     brn,
     grn,
+    amb,
+}
+
+impl FromStr for EyeColor {
+    type Err = ::strum::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "gry" => Ok(Self::gry),
+            "brn" => Ok(Self::brn),
+            "grn" => Ok(Self::grn),
+            "amb" => Ok(Self::amb),
+            _ => ::std::result::Result::Err(::strum::ParseError::VariantNotFound),
+        }
+    }
 }
 
 #[cfg(test)]

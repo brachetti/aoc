@@ -1,4 +1,6 @@
 extern crate derive_builder;
+extern crate strum;
+extern crate strum_macros;
 
 pub mod prelude {
     pub use super::scanner::*;
