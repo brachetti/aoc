@@ -3,6 +3,7 @@ extern crate strum;
 extern crate strum_macros;
 
 pub mod prelude {
+    pub use super::batch_file::*;
     pub use super::scanner::*;
     pub use derive_builder::*;
     pub use once_cell::sync::OnceCell;
@@ -10,12 +11,12 @@ pub mod prelude {
     pub use regex::Regex;
     pub use serde::Deserialize;
     pub use std::{
+        collections::HashMap,
         error::Error,
         fmt::{self, Display, Formatter},
         str::FromStr,
         string::ParseError,
     };
-    pub use super::batch_file::*;
 }
 
 pub mod batch_file;

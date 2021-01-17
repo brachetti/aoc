@@ -1,8 +1,8 @@
 use crate::lib::prelude::*;
 
 pub mod height;
-pub mod rgb;
 pub mod policy;
+pub mod rgb;
 
 pub use policy::ValidityPolicy;
 
@@ -44,7 +44,10 @@ impl BatchFile {
     }
 
     pub fn count_valid_passports(&self, policy: Box<dyn ValidityPolicy>) -> usize {
-        self.validate(policy).into_iter().filter(|(_, is_valid)| *is_valid == true).count()
+        self.validate(policy)
+            .into_iter()
+            .filter(|(_, is_valid)| *is_valid == true)
+            .count()
     }
 }
 
@@ -53,28 +56,28 @@ impl BatchFile {
 pub struct PassportData {
     // Birth year
     #[builder(default)]
-    byr: Option<usize>,
+    pub(crate) byr: Option<usize>,
     // Issue year
     #[builder(default)]
-    iyr: Option<usize>,
+    pub(crate) iyr: Option<usize>,
     // Expiration year
     #[builder(default)]
-    eyr: Option<usize>,
+    pub(crate) eyr: Option<usize>,
     // height in centimeters
     #[builder(default)]
-    hgt: Option<Height>,
+    pub(crate) hgt: Option<Height>,
     // hair color
     #[builder(default)]
-    hcl: Option<RGB>,
+    pub(crate) hcl: Option<RGB>,
     // Eye Color
     #[builder(default)]
-    ecl: Option<EyeColor>,
+    pub(crate) ecl: Option<EyeColor>,
     // passport id
     #[builder(default)]
-    pid: Option<usize>,
+    pub(crate) pid: Option<usize>,
     // country id of issuing country
     #[builder(default)]
-    cid: Option<usize>,
+    pub(crate) cid: Option<usize>,
 }
 
 impl FromStr for PassportData {
@@ -122,11 +125,9 @@ impl FromStr for PassportData {
 impl PassportData {
     fn usize_value(cap: Captures) -> Option<usize> {
         match cap.name("value") {
-            Some(value) => {
-                match usize::from_str(value.as_str()) {
-                    Ok(val) => Some(val),
-                    _ => None,
-                }
+            Some(value) => match usize::from_str(value.as_str()) {
+                Ok(val) => Some(val),
+                _ => None,
             },
             None => None,
         }
@@ -134,11 +135,9 @@ impl PassportData {
 
     fn ecl_value(cap: Captures) -> Option<EyeColor> {
         match cap.name("value") {
-            Some(value) => {
-                match value.as_str().parse::<EyeColor>() {
-                    Ok(val) => Some(val),
-                    _ => None,
-                }
+            Some(value) => match value.as_str().parse::<EyeColor>() {
+                Ok(val) => Some(val),
+                _ => None,
             },
             None => None,
         }
@@ -146,11 +145,9 @@ impl PassportData {
 
     fn hcl_value(cap: Captures) -> Option<RGB> {
         match cap.name("value") {
-            Some(value) => {
-                match value.as_str().parse::<RGB>() {
-                    Ok(val) => Some(val),
-                    _ => None,
-                }
+            Some(value) => match value.as_str().parse::<RGB>() {
+                Ok(val) => Some(val),
+                _ => None,
             },
             None => None,
         }
@@ -158,11 +155,9 @@ impl PassportData {
 
     fn hgt_value(cap: Captures) -> Option<Height> {
         match cap.name("value") {
-            Some(value) => {
-                match value.as_str().parse::<Height>() {
-                    Ok(val) => Some(val),
-                    _ => None,
-                }
+            Some(value) => match value.as_str().parse::<Height>() {
+                Ok(val) => Some(val),
+                _ => None,
             },
             None => None,
         }
@@ -193,13 +188,16 @@ impl FromStr for EyeColor {
 
 #[cfg(test)]
 mod tests {
+    use crate::lib::batch_file::policy::{StraightPolicy, NorthPoleFriendlyPolicy};
     use crate::lib::batch_file::BatchFile;
     use crate::lib::prelude::*;
 
     #[test]
     fn should_split_passports() {
         let given_input = "byr:1984\n\nbyr:1985\n\nbyr:1990";
-        let result = BatchFile::from_str(given_input);
+        let result = BatchFile::from_str(given_input).unwrap();
+
+        assert_eq!(result.passports.len(), 3)
     }
 
     #[test]
@@ -208,6 +206,26 @@ mod tests {
         let result = BatchFile::from_str(given_input).unwrap();
 
         assert_eq!(result.passports.len(), 4)
+    }
+
+    #[test]
+    fn should_validate_aoc_traditionally() {
+        let given_input = given_aoc_example_input();
+        let batch_file = BatchFile::from_str(given_input).unwrap();
+        let policy = StraightPolicy::new();
+        let result = batch_file.count_valid_passports(Box::new(policy));
+
+        assert_eq!(result, 1)
+    }
+
+    #[test]
+    fn should_validate_aoc_north_pole_friendly() {
+        let given_input = given_aoc_example_input();
+        let batch_file = BatchFile::from_str(given_input).unwrap();
+        let policy = NorthPoleFriendlyPolicy::new();
+        let result = batch_file.count_valid_passports(Box::new(policy));
+
+        assert_eq!(result, 2)
     }
 
     fn given_aoc_example_input() -> &'static str {
