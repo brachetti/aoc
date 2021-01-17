@@ -1,6 +1,6 @@
 use crate::lib::prelude::*;
 
-#[derive(Debug, PartialEq, Copy, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Copy, Clone, Deserialize, Eq, Hash)]
 pub struct RGB {
     r: u8,
     g: u8,

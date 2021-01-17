@@ -1,13 +1,17 @@
 use crate::lib::prelude::*;
 
-mod height;
-mod rgb;
+pub mod height;
+pub mod rgb;
+pub mod policy;
+
+pub use policy::ValidityPolicy;
 
 use super::derive_builder::export::core::num::ParseIntError;
 use height::*;
 use regex::{Captures, Match};
 use rgb::*;
 use serde::Deserializer;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 pub struct BatchFile {
@@ -29,7 +33,22 @@ impl FromStr for BatchFile {
     }
 }
 
-#[derive(Deserialize, Debug, Copy, Clone, Builder)]
+impl BatchFile {
+    pub fn validate(&self, policy: Box<dyn ValidityPolicy>) -> HashMap<&PassportData, bool> {
+        let mut result = HashMap::with_capacity(self.passports.len());
+        self.passports.iter().for_each(|pp| {
+            result.insert(pp, policy.is_valid(pp));
+        });
+
+        result
+    }
+
+    pub fn count_valid_passports(&self, policy: Box<dyn ValidityPolicy>) -> usize {
+        self.validate(policy).into_iter().filter(|(_, is_valid)| *is_valid == true).count()
+    }
+}
+
+#[derive(Deserialize, Debug, Copy, Clone, Builder, PartialEq, Eq, Hash)]
 // #[builder]
 pub struct PassportData {
     // Birth year
@@ -65,7 +84,6 @@ impl FromStr for PassportData {
         let regex = Regex::new(r#"(?:(?P<name>\S{3}):(?P<value>[\S]+))+"#).unwrap();
         let mut passport_data_builder = PassportDataBuilder::default();
         for cap in regex.captures_iter(input) {
-            println!("cap {:?}", cap);
             match cap.name("name") {
                 Some(name) if name.as_str() == "byr" => {
                     passport_data_builder.byr(PassportData::usize_value(cap));
@@ -151,7 +169,7 @@ impl PassportData {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Copy, Clone, Deserialize, Eq, Hash)]
 pub enum EyeColor {
     gry,
     brn,
@@ -188,10 +206,8 @@ mod tests {
     fn should_split_passports2() {
         let given_input = given_aoc_example_input();
         let result = BatchFile::from_str(given_input).unwrap();
-        println!("end of test");
-        for pp in result.passports {
-            println!("- {:?}", pp);
-        }
+
+        assert_eq!(result.passports.len(), 4)
     }
 
     fn given_aoc_example_input() -> &'static str {

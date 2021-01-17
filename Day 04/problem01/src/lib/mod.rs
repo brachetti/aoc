@@ -15,7 +15,8 @@ pub mod prelude {
         str::FromStr,
         string::ParseError,
     };
+    pub use super::batch_file::*;
 }
 
-mod batch_file;
-mod scanner;
+pub mod batch_file;
+pub mod scanner;
