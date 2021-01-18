@@ -25,7 +25,7 @@ fn main() {
     let content = std::fs::read_to_string(input_file).expect("Could not open field");
 
     let batch_file = BatchFile::from_str(content.as_str()).expect("Could not parse Batch file");
-    let policy = StraightPolicy::new();
+    let policy = NorthPoleFriendlyPolicy::new();
     let number_of_valid_passports = batch_file.count_valid_passports(Box::new(policy));
 
     println!("Valid passports: {:?}", number_of_valid_passports);

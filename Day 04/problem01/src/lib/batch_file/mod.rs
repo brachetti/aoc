@@ -53,7 +53,7 @@ impl BatchFile {
     }
 }
 
-#[derive(Deserialize, Debug, Copy, Clone, Builder, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Debug, Clone, Builder, PartialEq, Eq, Hash)]
 // #[builder]
 pub struct PassportData {
     // Birth year
@@ -73,10 +73,10 @@ pub struct PassportData {
     pub(crate) hcl: Option<Color>,
     // Eye Color
     #[builder(default)]
-    pub(crate) ecl: Option<EyeColor>,
+    pub(crate) ecl: Option<Color>,
     // passport id
     #[builder(default)]
-    pub(crate) pid: Option<usize>,
+    pub(crate) pid: Option<String>,
     // country id of issuing country
     #[builder(default)]
     pub(crate) cid: Option<usize>,
@@ -100,16 +100,16 @@ impl FromStr for PassportData {
                     passport_data_builder.eyr(PassportData::usize_value(cap));
                 }
                 Some(name) if name.as_str() == "pid" => {
-                    passport_data_builder.pid(PassportData::usize_value(cap));
+                    passport_data_builder.pid(PassportData::string_value(cap));
                 }
                 Some(name) if name.as_str() == "cid" => {
                     passport_data_builder.cid(PassportData::usize_value(cap));
                 }
                 Some(name) if name.as_str() == "ecl" => {
-                    passport_data_builder.ecl(PassportData::ecl_value(cap));
+                    passport_data_builder.ecl(PassportData::color_value(cap));
                 }
                 Some(name) if name.as_str() == "hcl" => {
-                    passport_data_builder.hcl(PassportData::hcl_value(cap));
+                    passport_data_builder.hcl(PassportData::color_value(cap));
                 }
                 Some(name) if name.as_str() == "hgt" => {
                     passport_data_builder.hgt(PassportData::hgt_value(cap));
@@ -134,18 +134,17 @@ impl PassportData {
             None => None,
         }
     }
-
-    fn ecl_value(cap: Captures) -> Option<EyeColor> {
+    fn string_value(cap: Captures) -> Option<String> {
         match cap.name("value") {
-            Some(value) => match value.as_str().parse::<EyeColor>() {
-                Ok(val) => Some(val),
-                _ => None,
+            Some(value) => {
+                let val = String::from(value.as_str());
+                Some(val)
             },
             None => None,
         }
     }
 
-    fn hcl_value(cap: Captures) -> Option<Color> {
+    fn color_value(cap: Captures) -> Option<Color> {
         let rgb_tester = Regex::new(r"\#?[a-fA-F0-9]{6}").unwrap();
         match cap.name("value") {
             Some(value) if rgb_tester.is_match(value.as_str()) => {
@@ -156,7 +155,12 @@ impl PassportData {
             }
             Some(value) => match value.as_str().parse::<EyeColor>() {
                 Ok(val) => Some(Simple(val)),
-                _ => None,
+                _ => {
+                    if !value.as_str().is_empty() {
+                        println!("Could not recognize variant {:?}", value.as_str());
+                    }
+                    None
+                },
             },
             None => None,
         }
@@ -185,8 +189,16 @@ pub enum EyeColor {
     brn,
     grn,
     amb,
+    gmt,
+    blu,
+    utc,
     hzl,
     zzz,
+    dne,
+    grt,
+    xry,
+    lzr,
+    oth,
     z,
 }
 
@@ -197,12 +209,23 @@ impl FromStr for EyeColor {
         match s {
             "gry" => Ok(Self::gry),
             "brn" => Ok(Self::brn),
+            "dne" => Ok(Self::dne),
             "grn" => Ok(Self::grn),
             "amb" => Ok(Self::amb),
             "hzl" => Ok(Self::hzl),
             "zzz" => Ok(Self::zzz),
+            "gmt" => Ok(Self::gmt),
+            "blu" => Ok(Self::blu),
+            "utc" => Ok(Self::utc),
+            "grt" => Ok(Self::grt),
+            "xry" => Ok(Self::xry),
+            "oth" => Ok(Self::oth),
+            "lzr" => Ok(Self::lzr),
             "z" => Ok(Self::z),
-            _ => ::std::result::Result::Err(::strum::ParseError::VariantNotFound),
+            _ => {
+                println!("Could not recognize variant {:?}", s);
+                ::std::result::Result::Err(::strum::ParseError::VariantNotFound)
+            },
         }
     }
 }
@@ -260,12 +283,12 @@ mod tests {
 
     #[test]
     fn should_recognize_hcl_as_name() {
-        let given_input = "hcl:hzl";
+        let given_input = "hcl:z";
         let result = BatchFile::from_str(given_input).unwrap();
 
         assert_eq!(
         result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
-        Simple(EyeColor::hzl)
+        Simple(EyeColor::z)
         )
     }
 

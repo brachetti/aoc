@@ -40,7 +40,18 @@ impl ValidityPolicy for NorthPoleFriendlyPolicy {
         let mut tests = self.create_values_map(passport_data);
         tests.remove("cid");
 
-        tests.into_iter().all(|(_, is_some)| is_some == true)
+        match tests.into_iter().all(|(_, is_some)| is_some == true) {
+            true => true,
+            false => {
+                let mut tests2 = self.create_values_map(passport_data);
+                tests2.remove("cid");
+                let missing: Vec<&str> = tests2.into_iter().filter(|(_, is_some)| !*is_some).map(|(name, _)| name).collect();
+                if missing.contains(&"hcl") || missing.contains(&"ecl") {
+                    println!("Not valid:\n- {:?}\n- missing: {:?}\n", passport_data, missing);
+                }
+                false
+            }
+        }
     }
 }
 
