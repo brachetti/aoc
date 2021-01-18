@@ -4,9 +4,11 @@ pub mod height;
 pub mod policy;
 pub mod rgb;
 
+pub use policy::NorthPoleFriendlyPolicy;
 pub use policy::ValidityPolicy;
 
 use super::derive_builder::export::core::num::ParseIntError;
+use crate::Color::{Detailed, Simple};
 use height::*;
 use regex::{Captures, Match};
 use rgb::*;
@@ -68,7 +70,7 @@ pub struct PassportData {
     pub(crate) hgt: Option<Height>,
     // hair color
     #[builder(default)]
-    pub(crate) hcl: Option<RGB>,
+    pub(crate) hcl: Option<Color>,
     // Eye Color
     #[builder(default)]
     pub(crate) ecl: Option<EyeColor>,
@@ -143,10 +145,17 @@ impl PassportData {
         }
     }
 
-    fn hcl_value(cap: Captures) -> Option<RGB> {
+    fn hcl_value(cap: Captures) -> Option<Color> {
+        let rgb_tester = Regex::new(r"\#?[a-fA-F0-9]{6}").unwrap();
         match cap.name("value") {
-            Some(value) => match value.as_str().parse::<RGB>() {
-                Ok(val) => Some(val),
+            Some(value) if rgb_tester.is_match(value.as_str()) => {
+                match value.as_str().parse::<RGB>() {
+                    Ok(val) => Some(Detailed(val)),
+                    _ => None,
+                }
+            }
+            Some(value) => match value.as_str().parse::<EyeColor>() {
+                Ok(val) => Some(Simple(val)),
                 _ => None,
             },
             None => None,
@@ -164,12 +173,21 @@ impl PassportData {
     }
 }
 
+#[derive(Copy, Clone, Deserialize, Hash, Eq, PartialEq, Debug)]
+pub enum Color {
+    Simple(EyeColor),
+    Detailed(RGB),
+}
+
 #[derive(Debug, PartialEq, Copy, Clone, Deserialize, Eq, Hash)]
 pub enum EyeColor {
     gry,
     brn,
     grn,
     amb,
+    hzl,
+    zzz,
+    z,
 }
 
 impl FromStr for EyeColor {
@@ -181,6 +199,9 @@ impl FromStr for EyeColor {
             "brn" => Ok(Self::brn),
             "grn" => Ok(Self::grn),
             "amb" => Ok(Self::amb),
+            "hzl" => Ok(Self::hzl),
+            "zzz" => Ok(Self::zzz),
+            "z" => Ok(Self::z),
             _ => ::std::result::Result::Err(::strum::ParseError::VariantNotFound),
         }
     }
@@ -188,9 +209,11 @@ impl FromStr for EyeColor {
 
 #[cfg(test)]
 mod tests {
-    use crate::lib::batch_file::policy::{StraightPolicy, NorthPoleFriendlyPolicy};
+    use crate::lib::batch_file::policy::{NorthPoleFriendlyPolicy, StraightPolicy};
+    use crate::lib::batch_file::rgb::RGB;
     use crate::lib::batch_file::BatchFile;
     use crate::lib::prelude::*;
+    use crate::Color::{Detailed, Simple};
 
     #[test]
     fn should_split_passports() {
@@ -205,7 +228,45 @@ mod tests {
         let given_input = given_aoc_example_input();
         let result = BatchFile::from_str(given_input).unwrap();
 
+        println!("pps:");
+        for pp in &result.passports {
+            println!("- {:?}", pp);
+        }
+
         assert_eq!(result.passports.len(), 4)
+    }
+
+    #[test]
+    fn should_recognize_hcl_as_rgb() {
+        let given_input = "hcl:#00FF00";
+        let result = BatchFile::from_str(given_input).unwrap();
+
+        assert_eq!(
+        result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
+        Detailed(RGB::new(0, 255, 0,))
+        )
+    }
+
+    #[test]
+    fn should_recognize_hcl_as_rgb_2() {
+        let given_input = "hcl:00FF00";
+        let result = BatchFile::from_str(given_input).unwrap();
+
+        assert_eq!(
+        result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
+        Detailed(RGB::new(0, 255, 0,))
+        )
+    }
+
+    #[test]
+    fn should_recognize_hcl_as_name() {
+        let given_input = "hcl:hzl";
+        let result = BatchFile::from_str(given_input).unwrap();
+
+        assert_eq!(
+        result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
+        Simple(EyeColor::hzl)
+        )
     }
 
     #[test]
