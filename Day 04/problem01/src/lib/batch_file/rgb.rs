@@ -1,5 +1,7 @@
 use crate::lib::prelude::*;
 
+use anyhow::bail;
+
 #[derive(Debug, PartialEq, Copy, Clone, Deserialize, Eq, Hash)]
 pub struct RGB {
     r: u8,
@@ -23,21 +25,15 @@ impl RGB {
     }
 }
 
-#[derive(Debug)]
-enum RGBError {
-    PIE(std::num::ParseIntError),
-    PE(std::string::ParseError),
-}
-
 // taken from https://rust-lang-nursery.github.io/rust-cookbook/text/string_parsing.html
 impl FromStr for RGB {
-    type Err = RGBError;
+    type Err = anyhow::Error;
 
     // Parses a color hex code of the form '#rRgGbB..' into an
     // instance of 'RGB'
-    fn from_str(hex_code: &str) -> Result<Self, Self::Err> {
+    fn from_str(hex_code: &str) -> Result<Self, anyhow::Error> {
         if !hex_code.starts_with("#") || !hex_code.len() == 7 {
-            return Err(RGBError::PE(...))
+            bail!("Invalid format")
         }
 
         // assert!()
