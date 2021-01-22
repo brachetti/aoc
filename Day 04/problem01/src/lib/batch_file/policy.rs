@@ -1,5 +1,5 @@
-use crate::lib::batch_file::height::Measurement;
 use crate::lib::batch_file::height::Measurement::cm;
+use crate::lib::batch_file::height::{Height, Measurement};
 use crate::lib::prelude::*;
 
 pub trait ValidityPolicy {
@@ -7,37 +7,44 @@ pub trait ValidityPolicy {
 
     fn create_values_map(&self, passport_data: &PassportData) -> HashMap<&str, bool> {
         let mut tests: HashMap<&str, bool> = HashMap::new();
-        tests.insert("byr", {
-            let d = passport_data.byr;
-            d.is_some() && d.unwrap() >= 1920 && d.unwrap() <= 2002
+        tests.insert("byr", passport_data.byr.is_some());
+        tests.insert("byr range", {
+            let d = passport_data.byr.unwrap_or_else(|| 0);
+            d >= 1920 && d <= 2002
         });
         tests.insert("cid", passport_data.cid.is_some());
-        tests.insert("ecl", {
-            let d = passport_data.ecl;
-            passport_data.ecl.is_some()
-        });
-        tests.insert("eyr", {
-            let d = passport_data.eyr;
-            d.is_some() && d.unwrap() >= 2020 && d.unwrap() <= 2030
+        tests.insert("ecl", passport_data.ecl.is_some());
+        tests.insert("eyr", passport_data.eyr.is_some());
+        tests.insert("eyr range", {
+            let d = passport_data.eyr.unwrap_or(0);
+            d >= 2020 && d <= 2030
         });
         tests.insert("hcl", passport_data.hcl.is_some());
-        tests.insert(
-            "hgt",
-            match passport_data.hgt {
-                Some(height) if height.measurement == cm => {
-                    150 <= height.amount && height.amount <= 193
-                }
-                Some(height) if height.measurement == Measurement::r#in => {
-                    height.amount >= 59 && height.amount <= 76
-                }
-                _ => false,
-            },
+        // ordinarily I would put validators into the class itself
+        tests.insert("hgt",
+            passport_data.hgt.is_some()
         );
-        tests.insert("iyr", {
-            let d = passport_data.iyr;
-            d.is_some() && d.unwrap() >= 2010 && d.unwrap() <= 2020
+        tests.insert("hgt range", {
+            let d = passport_data.hgt.unwrap_or_else(|| Height {
+                amount: 0,
+                measurement: Measurement::cm,
+            });
+            match d.measurement {
+                Measurement::cm => 150 <= d.amount && d.amount <= 193,
+                Measurement::r#in => d.amount >= 59 && d.amount <= 76,
+            }
+        });
+        tests.insert("iyr", passport_data.iyr.is_some());
+        tests.insert("iyr range", {
+            let d = passport_data.iyr.unwrap_or(0);
+            d >= 2010 && d <= 2020
         });
         tests.insert("pid", passport_data.pid.is_some());
+        tests.insert("pid format", {
+            let d = passport_data.pid.clone().unwrap_or("".into());
+            let regex = Regex::new(r"[0-9]{9}").unwrap();
+            regex.is_match(d.as_str())
+        });
 
         tests
     }

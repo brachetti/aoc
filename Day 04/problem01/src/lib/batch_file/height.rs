@@ -33,6 +33,29 @@ mod tests {
     }
 
     #[test]
+    fn should_parse_inch() {
+        let given = "60in";
+        let result: Height = given.parse::<Height>().unwrap();
+
+        assert_eq!(
+            result,
+            Height {
+                amount: 60,
+                measurement: Measurement::r#in
+            }
+        )
+    }
+
+    #[test]
+    fn should_reject_incomplete() {
+        let given = "172";
+        let result = given.parse::<Height>();
+
+        assert!(result.is_err());
+        assert!(!result.is_ok());
+    }
+
+    #[test]
     fn should_cmp_measurements() {
         assert_eq!(Measurement::r#in, Measurement::r#in)
     }

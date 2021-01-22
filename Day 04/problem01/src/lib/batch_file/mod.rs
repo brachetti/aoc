@@ -181,12 +181,7 @@ impl PassportData {
             }
             Some(value) => match value.as_str().parse::<EyeColor>() {
                 Ok(val) => Some(Simple(val)),
-                _ => {
-                    if !value.as_str().is_empty() {
-                        println!("Could not recognize variant {:?}", value.as_str());
-                    }
-                    None
-                }
+                _ => None,
             },
             None => None,
         }
@@ -203,6 +198,8 @@ impl PassportData {
     }
 }
 
+
+
 #[derive(Copy, Clone, Deserialize, Hash, Eq, PartialEq, Debug)]
 pub enum Color {
     Simple(EyeColor),
@@ -211,11 +208,11 @@ pub enum Color {
 
 #[derive(Debug, PartialEq, Copy, Clone, Deserialize, Eq, Hash)]
 pub enum EyeColor {
-    gry,
-    brn,
-    grn,
     amb,
     blu,
+    brn,
+    gry,
+    grn,
     hzl,
     oth,
 }
@@ -232,10 +229,7 @@ impl FromStr for EyeColor {
             "hzl" => Ok(Self::hzl),
             "blu" => Ok(Self::blu),
             "oth" => Ok(Self::oth),
-            _ => {
-                println!("Could not recognize variant {:?}", s);
-                ::std::result::Result::Err(::strum::ParseError::VariantNotFound)
-            }
+            _ => ::std::result::Result::Err(::strum::ParseError::VariantNotFound)
         }
     }
 }
@@ -262,10 +256,10 @@ mod tests {
         let given_input = given_aoc_example_input_valid();
         let result = BatchFile::from_str(given_input).unwrap();
 
-        println!("pps:");
-        for pp in &result.passports {
-            println!("- {:?}", pp);
-        }
+        // println!("pps:");
+        // for pp in &result.passports {
+        //     println!("- {:?}", pp);
+        // }
 
         assert_eq!(result.passports.len(), 4)
     }
@@ -307,6 +301,27 @@ mod tests {
     #[test]
     fn should_invalidate_passports() {
         let given_input = given_aoc_example_input_invalid();
+        let batch_file = BatchFile::from_str(given_input).unwrap();
+        let policy = NorthPoleFriendlyPolicy::new();
+        let result = batch_file.count_valid_passports(Box::new(policy));
+
+        assert_eq!(result, 0)
+    }
+
+    #[test]
+    fn should_invalidate_pid() {
+        let given_input = "pid:08749970 hgt:74in ecl:grn iyr:2012 eyr:2030 byr:1980 hcl:#623a2f";
+        let batch_file = BatchFile::from_str(given_input).unwrap();
+        let policy = NorthPoleFriendlyPolicy::new();
+        let result = batch_file.count_valid_passports(Box::new(policy));
+
+        assert_eq!(result, 0)
+    }
+
+    #[test]
+    fn should_invalidate_stuff() {
+        let given_input =
+            "eyr:1972 cid:100 hcl:#18171d ecl:amb hgt:170 pid:186cm iyr:2018 byr:1926";
         let batch_file = BatchFile::from_str(given_input).unwrap();
         let policy = NorthPoleFriendlyPolicy::new();
         let result = batch_file.count_valid_passports(Box::new(policy));
