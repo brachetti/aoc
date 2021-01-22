@@ -1,6 +1,7 @@
 extern crate derive_builder;
 extern crate strum;
 extern crate strum_macros;
+extern crate thiserror;
 
 pub mod prelude {
     pub use super::batch_file::*;
@@ -10,6 +11,7 @@ pub mod prelude {
     pub use recap::Recap;
     pub use regex::Regex;
     pub use serde::Deserialize;
+    use thiserror::Error;
     pub use std::{
         collections::HashMap,
         error::Error,

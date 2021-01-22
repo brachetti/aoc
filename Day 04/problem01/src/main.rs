@@ -3,8 +3,8 @@ extern crate clap;
 
 pub use crate::lib::prelude::*;
 
-use clap::{App, Arg};
 use crate::lib::batch_file::policy::StraightPolicy;
+use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("scanner")

@@ -4,8 +4,8 @@ use regex::Captures;
 #[derive(PartialEq, Debug, Deserialize, Recap, Copy, Clone, Eq, Hash)]
 #[recap(regex = r#"(?P<amount>\d{2,3})(?P<measurement>.{2})"#)]
 pub struct Height {
-    amount: usize,
-    measurement: Measurement,
+    pub amount: usize,
+    pub measurement: Measurement,
 }
 
 #[derive(PartialEq, Debug, Deserialize, Copy, Clone, Eq, Hash)]

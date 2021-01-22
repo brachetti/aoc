@@ -70,10 +70,10 @@ pub struct PassportData {
     pub(crate) hgt: Option<Height>,
     // hair color
     #[builder(default)]
-    pub(crate) hcl: Option<Color>,
+    pub(crate) hcl: Option<RGB>,
     // Eye Color
     #[builder(default)]
-    pub(crate) ecl: Option<Color>,
+    pub(crate) ecl: Option<EyeColor>,
     // passport id
     #[builder(default)]
     pub(crate) pid: Option<String>,
@@ -106,10 +106,10 @@ impl FromStr for PassportData {
                     passport_data_builder.cid(PassportData::usize_value(cap));
                 }
                 Some(name) if name.as_str() == "ecl" => {
-                    passport_data_builder.ecl(PassportData::color_value(cap));
+                    passport_data_builder.ecl(PassportData::ecl_value(cap));
                 }
                 Some(name) if name.as_str() == "hcl" => {
-                    passport_data_builder.hcl(PassportData::color_value(cap));
+                    passport_data_builder.hcl(PassportData::rgb_value(cap));
                 }
                 Some(name) if name.as_str() == "hgt" => {
                     passport_data_builder.hgt(PassportData::hgt_value(cap));
@@ -134,13 +134,39 @@ impl PassportData {
             None => None,
         }
     }
+
     fn string_value(cap: Captures) -> Option<String> {
         match cap.name("value") {
             Some(value) => {
                 let val = String::from(value.as_str());
                 Some(val)
+            }
+            None => None,
+        }
+    }
+
+    fn ecl_value(cap: Captures) -> Option<EyeColor> {
+        match cap.name("value") {
+            Some(value) => match value.as_str().parse::<EyeColor>() {
+                Ok(val) => Some(val),
+                Err(e) => None,
             },
             None => None,
+        }
+    }
+
+    fn rgb_value(cap: Captures) -> Option<RGB> {
+        let rgb_tester = Regex::new(r"\#[a-fA-F0-9]{6}").unwrap();
+        match cap.name("value") {
+            Some(value) if rgb_tester.is_match(value.as_str()) => {
+                let res = RGB::from_str(value.as_str());
+                if res.is_ok() {
+                    Some(res.unwrap())
+                } else {
+                    None
+                }
+            }
+            _ => None,
         }
     }
 
@@ -160,7 +186,7 @@ impl PassportData {
                         println!("Could not recognize variant {:?}", value.as_str());
                     }
                     None
-                },
+                }
             },
             None => None,
         }
@@ -189,17 +215,9 @@ pub enum EyeColor {
     brn,
     grn,
     amb,
-    gmt,
     blu,
-    utc,
     hzl,
-    zzz,
-    dne,
-    grt,
-    xry,
-    lzr,
     oth,
-    z,
 }
 
 impl FromStr for EyeColor {
@@ -209,23 +227,15 @@ impl FromStr for EyeColor {
         match s {
             "gry" => Ok(Self::gry),
             "brn" => Ok(Self::brn),
-            "dne" => Ok(Self::dne),
             "grn" => Ok(Self::grn),
             "amb" => Ok(Self::amb),
             "hzl" => Ok(Self::hzl),
-            "zzz" => Ok(Self::zzz),
-            "gmt" => Ok(Self::gmt),
             "blu" => Ok(Self::blu),
-            "utc" => Ok(Self::utc),
-            "grt" => Ok(Self::grt),
-            "xry" => Ok(Self::xry),
             "oth" => Ok(Self::oth),
-            "lzr" => Ok(Self::lzr),
-            "z" => Ok(Self::z),
             _ => {
                 println!("Could not recognize variant {:?}", s);
                 ::std::result::Result::Err(::strum::ParseError::VariantNotFound)
-            },
+            }
         }
     }
 }
@@ -237,6 +247,7 @@ mod tests {
     use crate::lib::batch_file::BatchFile;
     use crate::lib::prelude::*;
     use crate::Color::{Detailed, Simple};
+    use crate::EyeColor::amb;
 
     #[test]
     fn should_split_passports() {
@@ -248,7 +259,7 @@ mod tests {
 
     #[test]
     fn should_split_passports2() {
-        let given_input = given_aoc_example_input();
+        let given_input = given_aoc_example_input_valid();
         let result = BatchFile::from_str(given_input).unwrap();
 
         println!("pps:");
@@ -260,71 +271,77 @@ mod tests {
     }
 
     #[test]
-    fn should_recognize_hcl_as_rgb() {
-        let given_input = "hcl:#00FF00";
+    fn should_recognize_ecl_as_name() {
+        let given_input = "ecl:amb";
         let result = BatchFile::from_str(given_input).unwrap();
 
         assert_eq!(
-        result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
-        Detailed(RGB::new(0, 255, 0,))
+            result
+                .passports
+                .get(0)
+                .expect("Needs to exist")
+                .ecl
+                .expect("Should exist"),
+            EyeColor::amb
         )
     }
 
     #[test]
-    fn should_recognize_hcl_as_rgb_2() {
-        let given_input = "hcl:00FF00";
+    fn should_ignore_invalid_ecl() {
+        let given_input = "ecl:z";
         let result = BatchFile::from_str(given_input).unwrap();
 
-        assert_eq!(
-        result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
-        Detailed(RGB::new(0, 255, 0,))
-        )
+        assert_eq!(result.passports.get(0).expect("Needs to exist").ecl, None)
     }
 
     #[test]
-    fn should_recognize_hcl_as_name() {
-        let given_input = "hcl:z";
-        let result = BatchFile::from_str(given_input).unwrap();
-
-        assert_eq!(
-        result.passports.get(0).expect("Needs to exist").hcl.expect("Should exist"),
-        Simple(EyeColor::z)
-        )
-    }
-
-    #[test]
-    fn should_validate_aoc_traditionally() {
-        let given_input = given_aoc_example_input();
-        let batch_file = BatchFile::from_str(given_input).unwrap();
-        let policy = StraightPolicy::new();
-        let result = batch_file.count_valid_passports(Box::new(policy));
-
-        assert_eq!(result, 1)
-    }
-
-    #[test]
-    fn should_validate_aoc_north_pole_friendly() {
-        let given_input = given_aoc_example_input();
+    fn should_validate_passports() {
+        let given_input = given_aoc_example_input_valid();
         let batch_file = BatchFile::from_str(given_input).unwrap();
         let policy = NorthPoleFriendlyPolicy::new();
         let result = batch_file.count_valid_passports(Box::new(policy));
 
-        assert_eq!(result, 2)
+        assert_eq!(result, 4)
     }
 
-    fn given_aoc_example_input() -> &'static str {
-        "ecl:gry pid:860033327 eyr:2020 hcl:#fffffd
-byr:1937 iyr:2017 cid:147 hgt:183cm
+    #[test]
+    fn should_invalidate_passports() {
+        let given_input = given_aoc_example_input_invalid();
+        let batch_file = BatchFile::from_str(given_input).unwrap();
+        let policy = NorthPoleFriendlyPolicy::new();
+        let result = batch_file.count_valid_passports(Box::new(policy));
 
-iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
-hcl:#cfa07d byr:1929
+        assert_eq!(result, 0)
+    }
 
-hcl:#ae17e1 iyr:2013
-eyr:2024
-ecl:brn pid:760753108 byr:1931
-hgt:179cm
+    fn given_aoc_example_input_valid() -> &'static str {
+        "pid:087499704 hgt:74in ecl:grn iyr:2012 eyr:2030 byr:1980
+hcl:#623a2f
 
-hcl:#cfa07d eyr:2025 pid:166559648
-iyr:2011 ecl:brn hgt:59in"
+eyr:2029 ecl:blu cid:129 byr:1989
+iyr:2014 pid:896056539 hcl:#a97842 hgt:165cm
+
+hcl:#888785
+hgt:164cm byr:2001 iyr:2015 cid:88
+pid:545766238 ecl:hzl
+eyr:2022
+
+iyr:2010 hgt:158cm hcl:#b6652a ecl:blu byr:1944 eyr:2021 pid:093154719"
+    }
+
+    fn given_aoc_example_input_invalid() -> &'static str {
+        "eyr:1972 cid:100
+hcl:#18171d ecl:amb hgt:170 pid:186cm iyr:2018 byr:1926
+
+iyr:2019
+hcl:#602927 eyr:1967 hgt:170cm
+ecl:grn pid:012533040 byr:1946
+
+hcl:dab227 iyr:2012
+ecl:brn hgt:182cm pid:021572410 eyr:2020 byr:1992 cid:277
+
+hgt:59cm ecl:zzz
+eyr:2038 hcl:74454a iyr:2023
+pid:3556412378 byr:2007"
     }
 }
