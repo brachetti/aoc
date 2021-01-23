@@ -3,7 +3,6 @@ extern crate clap;
 
 pub use crate::lib::prelude::*;
 
-use crate::lib::batch_file::policy::StraightPolicy;
 use clap::{App, Arg};
 
 fn main() {

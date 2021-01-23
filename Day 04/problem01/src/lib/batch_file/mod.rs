@@ -149,7 +149,7 @@ impl PassportData {
         match cap.name("value") {
             Some(value) => match value.as_str().parse::<EyeColor>() {
                 Ok(val) => Some(val),
-                Err(e) => None,
+                Err(_) => None,
             },
             None => None,
         }
@@ -170,23 +170,6 @@ impl PassportData {
         }
     }
 
-    fn color_value(cap: Captures) -> Option<Color> {
-        let rgb_tester = Regex::new(r"\#?[a-fA-F0-9]{6}").unwrap();
-        match cap.name("value") {
-            Some(value) if rgb_tester.is_match(value.as_str()) => {
-                match value.as_str().parse::<RGB>() {
-                    Ok(val) => Some(Detailed(val)),
-                    _ => None,
-                }
-            }
-            Some(value) => match value.as_str().parse::<EyeColor>() {
-                Ok(val) => Some(Simple(val)),
-                _ => None,
-            },
-            None => None,
-        }
-    }
-
     fn hgt_value(cap: Captures) -> Option<Height> {
         match cap.name("value") {
             Some(value) => match value.as_str().parse::<Height>() {
@@ -198,7 +181,54 @@ impl PassportData {
     }
 }
 
+impl PassportData {
+    fn is_valid(&self, policy: &ValidityPolicy) -> bool {
+        let tests : [fn(&PassportData, &ValidityPolicy) -> bool; 8] = [
+            Self::byr_test,
+            Self::iyr_test,
+            Self::eyr_test,
+            Self::hgt_test,
+            Self::hcl_test,
+            Self::ecl_test,
+            Self::pid_test,
+            Self::cid_test,
+        ];
 
+        tests.iter().all(|f| f(self, policy))
+    }
+    
+    fn byr_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.byr_test(self.byr)
+    }
+
+    fn iyr_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.iyr_test(self.iyr)
+    }
+    
+    fn eyr_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.eyr_test(self.eyr)
+    }
+    
+    fn hgt_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.hgt_test(self.hgt)
+    }
+    
+    fn hcl_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.hcl_test(self.hcl)
+    }
+    
+    fn ecl_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.ecl_test(self.ecl)
+    }
+    
+    fn pid_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.pid_test(self.pid.as_ref())
+    }
+    
+    fn cid_test(&self, policy: &dyn ValidityPolicy) -> bool {
+        policy.cid_test(self.cid)
+    }
+}
 
 #[derive(Copy, Clone, Deserialize, Hash, Eq, PartialEq, Debug)]
 pub enum Color {

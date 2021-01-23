@@ -1,5 +1,4 @@
 use crate::lib::prelude::*;
-use regex::Captures;
 
 #[derive(PartialEq, Debug, Deserialize, Recap, Copy, Clone, Eq, Hash)]
 #[recap(regex = r#"(?P<amount>\d{2,3})(?P<measurement>.{2})"#)]
