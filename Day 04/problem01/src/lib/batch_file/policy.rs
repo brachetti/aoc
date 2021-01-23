@@ -87,6 +87,7 @@ mod tests {
     use crate::lib::batch_file::height::Height;
     use crate::lib::prelude::height::Measurement;
     use crate::lib::batch_file::rgb::RGB;
+    use super::super::super::anyhow::Error;
 
     #[test]
     fn should_reject_byr() {
@@ -104,6 +105,17 @@ mod tests {
         accepting_byr(2002);
     }
 
+    #[test]
+    fn should_accept_hcl() {
+        accepting_hcl("#123abc");
+    }
+
+    #[test]
+    fn should_reject_hcl() {
+        rejecting_hcl("#123abz");
+        rejecting_hcl("123abc");
+    }
+
     fn accepting_byr(byr: usize) {
         let pd = building_pd().byr(Some(byr)).build().unwrap();
         let policy = given_policy();
@@ -118,6 +130,32 @@ mod tests {
         let result = when_checking_validity(&pd, policy);
 
         assert_eq!(result, false, "byr of {} should be invalid", byr)
+    }
+
+    fn accepting_hcl(hcl: &str) {
+        let mut pdb = building_pd();
+        match RGB::from_str(hcl) {
+            Ok(v) => pdb.hcl(Some(v)),
+            Err(_) => pdb.hcl(None),
+        };
+        let pd = pdb.build().unwrap();
+        let policy = given_policy();
+        let result = when_checking_validity(&pd, policy);
+
+        assert_eq!(result, true, "hcl of {} should be valid", hcl)
+    }
+
+    fn rejecting_hcl(hcl: &str) {
+        let mut pdb = building_pd();
+        match RGB::from_str(hcl) {
+            Ok(v) => pdb.hcl(Some(v)),
+            Err(_) => pdb.hcl(None),
+        };
+        let pd = pdb.build().unwrap();
+        let policy = given_policy();
+        let result = when_checking_validity(&pd, policy);
+
+        assert_eq!(result, false, "hcl of {} should be invalid", hcl)
     }
 
     fn building_pd() -> PassportDataBuilder {
