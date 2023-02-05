@@ -1,4 +1,5 @@
 use std::{str::FromStr, usize};
+use clap::{Arg, Command};
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 struct Elf {
@@ -20,15 +21,35 @@ impl FromStr for Elf {
     }
 }
 
+fn get_elfs(input: &str) -> Vec<Elf> {
+    let elfs: Vec<Elf> = input.split("\n\n").map(|i| Elf::from_str(i).unwrap()).collect();
+
+    elfs
+}
+
 fn main() {
-    println!("Hello, world!");
+    let matches = Command::new("AOC Day 01")
+        .about("Elfs with calories")
+        .arg(
+            Arg::new("file")
+            .short('f')
+            .long("file")
+            .required(true)
+            .help("input file")
+            )
+        .get_matches();
+
+    let input_file: &String = matches.get_one::<String>("file").expect("'file' is required");
+    let content = std::fs::read_to_string(input_file).expect("Could not open file");
+
+    let elfs: Vec<Elf> = get_elfs(&content);
 }
 
 #[cfg(test)]
 mod tests {
     use std::{str::FromStr};
 
-    use crate::Elf;
+    use crate::{Elf, get_elfs};
 
     #[test]
     fn should_have_elf_w_calories() {
@@ -52,5 +73,19 @@ mod tests {
         let elf = Elf::from_str(input).unwrap();
 
         assert_eq!(elf.calories, 3000)
+    }
+
+    #[test]
+    fn should_have_one_elf() {
+        let input = "1000\n";
+        let elfs = get_elfs(input);
+        assert_eq!(elfs.len(), 1);
+    }
+
+    #[test]
+    fn should_have_two_elfs() {
+        let input = "1000\n\n2000";
+        let elfs = get_elfs(input);
+        assert_eq!(elfs.len(), 2);
     }
 }
