@@ -35,14 +35,16 @@ fn main() {
             .short('f')
             .long("file")
             .required(true)
-            .help("input file")
-            )
+            .help("input file"))
         .get_matches();
 
     let input_file: &String = matches.get_one::<String>("file").expect("'file' is required");
     let content = std::fs::read_to_string(input_file).expect("Could not open file");
 
     let elfs: Vec<Elf> = get_elfs(&content);
+    println!("{:?} Elfs", elfs.len());
+    let max = elfs.into_iter().map(|e| e.calories).max();
+    println!("Max value: {:?}", max);
 }
 
 #[cfg(test)]
